@@ -26,7 +26,7 @@ RUN set -ex; \
                   -e '/<logger name="LightstreamerProxyAdapters/,+2s/<appender-ref ref="LSConsole" \/>/<!-- <appender-ref ref="LSConsole" \/> -->/' \
                   conf/lightstreamer_log_conf.xml \
 # Remove unneeded folder
-        && rm -fr /lightstreamer/DOC-SDKs \
+        && rm -fr /lightstreamer/DOCS-SDKs \
 # Add new user and group
         && groupadd -r -g 10000 lightstreamer \
         && useradd --no-log-init -r -g lightstreamer -u 10000 lightstreamer \
