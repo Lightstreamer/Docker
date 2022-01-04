@@ -4,7 +4,7 @@ FROM openjdk:11-jdk
 LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.com>"
 
 # Import Lighstreamer's public key
-RUN gpg --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
+RUN gpg --batch --keyserver hkp://keyserver.ubuntu.com --recv-keys 9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 
 # Set environment variables to identify the right Lightstreamer version and edition
 ENV LIGHTSTREAMER_VERSION 7_1_2
