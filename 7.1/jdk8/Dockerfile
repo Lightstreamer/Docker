@@ -7,8 +7,10 @@ LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.c
 RUN gpg --batch --keyserver hkp://keyserver.ubuntu.com --recv-keys 9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 
 # Set environment variables to identify the right Lightstreamer version and edition
+# TEMPORARY URL NAMING FOR 7.1.x
 ENV LIGHTSTREAMER_VERSION 7_1_2
-ENV LIGHTSTREAMER_URL_DOWNLOAD http://www.lightstreamer.com/repo/distros/Lightstreamer_${LIGHTSTREAMER_VERSION}.tar.gz
+ENV LIGHTSTREAMER_FOLDER 7.1.2
+ENV LIGHTSTREAMER_URL_DOWNLOAD https://lightstreamer.com/distr/ls-server/${LIGHTSTREAMER_FOLDER}/Lightstreamer_${LIGHTSTREAMER_VERSION}.tar.gz
 
 # Download the package from the Lightstreamer site, verify the signature, and unpack
 RUN set -ex; \
