@@ -1,7 +1,12 @@
 # Set the base image
-FROM openjdk:11-jdk
+FROM eclipse-temurin:11-jdk
 
 LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.com>"
+
+# Add gpg, which is missing in the eclipse-temurin image
+RUN apt-get -y update \
+        && apt-get -y install gnupg \
+        && rm -rf /var/lib/apt/lists/*
 
 # Import Lighstreamer's public key
 RUN gpg --batch --keyserver hkp://keyserver.ubuntu.com --recv-keys 9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
