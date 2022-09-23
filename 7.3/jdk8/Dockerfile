@@ -3,10 +3,10 @@ FROM eclipse-temurin:8-jdk
 
 LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.com>"
 
-# Add gpg, which is missing in the eclipse-temurin docker
-# (the preliminary update seems necessary for a successful installation)
-RUN apt -y update
-RUN apt -y install gnupg
+# Add gpg, which is missing in the eclipse-temurin image
+RUN apt-get -y update \
+        && apt-get -y install gnupg \
+        && rm -rf /var/lib/apt/lists/*
 
 # Import Lighstreamer's public key
 RUN gpg --batch --keyserver hkp://keyserver.ubuntu.com --recv-keys 9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
