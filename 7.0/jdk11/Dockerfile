@@ -7,8 +7,7 @@ LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.c
 RUN gpg --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 
 # Set environment variables to identify the right Lightstreamer version and edition
-ENV LIGHTSTREAMER_VERSION 7_0_3_20190107
-ENV LIGHTSTREAMER_URL_DOWNLOAD http://www.lightstreamer.com/repo/distros/Lightstreamer_${LIGHTSTREAMER_VERSION}.tar.gz
+ENV LIGHTSTREAMER_URL_DOWNLOAD https://lightstreamer.com/distr/ls-server/7.0.3/Lightstreamer_7_0_3_20190315.tar.gz
 
 # Download the package from the Lightstreamer site, verify the signature, and unpack
 RUN set -ex; \
@@ -30,7 +29,7 @@ RUN set -ex; \
 # Add new user and group
         && groupadd -r -g 10000 lightstreamer \
         && useradd --no-log-init -r -g lightstreamer -u 10000 lightstreamer \
-# Change ownership of tye lightstreamer folder
+# Change ownership of the lightstreamer folder
         && chown -R lightstreamer:lightstreamer ../lightstreamer \
 # Finally, remove no longer needed files
         && rm Lightstreamer.tar.gz Lightstreamer.tar.gz.asc

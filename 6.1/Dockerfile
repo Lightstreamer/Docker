@@ -7,9 +7,7 @@ MAINTAINER Lightstreamer Server Development Team <support@lightstreamer.com>
 RUN gpg --keyserver ha.pool.sks-keyservers.net --recv-keys 9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 
 # Set environment variables to identify the right Lightstreamer version and edition
-ENV LIGHSTREAMER_EDITION Allegro-Presto-Vivace
-ENV LIGHSTREAMER_VERSION 6_1_0_20170123
-ENV LIGHSTREAMER_URL_DOWNLOAD http://www.lightstreamer.com/repo/distros/Lightstreamer_${LIGHSTREAMER_EDITION}_${LIGHSTREAMER_VERSION}.tar.gz
+ENV LIGHTSTREAMER_URL_DOWNLOAD https://lightstreamer.com/distr/ls-server/6.1.0/Lightstreamer_Allegro-Presto-Vivace_6_1_0_20170123.tar.gz
 
 # Set the temporary working dir
 WORKDIR /lightstreamer
@@ -18,8 +16,8 @@ WORKDIR /lightstreamer
 # the JAVA_HOME environment variable in the launch script file.
 # Finally, adjust logging configuration to log only on standard output.
 RUN set -x \
-        && curl -fSL -o Lightstreamer.tar.gz ${LIGHSTREAMER_URL_DOWNLOAD} \
-        && curl -fSL -o Lightstreamer.tar.gz.asc ${LIGHSTREAMER_URL_DOWNLOAD}.asc \
+        && curl -fSL -o Lightstreamer.tar.gz ${LIGHTSTREAMER_URL_DOWNLOAD} \
+        && curl -fSL -o Lightstreamer.tar.gz.asc ${LIGHTSTREAMER_URL_DOWNLOAD}.asc \
         && gpg --batch --verify Lightstreamer.tar.gz.asc Lightstreamer.tar.gz \
         && tar -xvf Lightstreamer.tar.gz --strip-components=1 \
         && rm Lightstreamer.tar.gz Lightstreamer.tar.gz.asc \
