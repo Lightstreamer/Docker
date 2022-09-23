@@ -1,10 +1,10 @@
 # Set the base image
 FROM openjdk:8-jdk
 
-MAINTAINER Lightstreamer Server Development Team <support@lightstreamer.com>
+LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.com>"
 
 # Import Lighstreamer's public key
-RUN gpg --keyserver ha.pool.sks-keyservers.net --recv-keys 9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
+RUN gpg --batch --keyserver hkp://keyserver.ubuntu.com --recv-keys 9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 
 # Set environment variables to identify the right Lightstreamer version and edition
 ENV LIGHTSTREAMER_URL_DOWNLOAD https://lightstreamer.com/distr/ls-server/6.1.0/Lightstreamer_Allegro-Presto-Vivace_6_1_0_20170123.tar.gz
