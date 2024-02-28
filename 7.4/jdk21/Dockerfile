@@ -1,5 +1,5 @@
 # Set the base image
-FROM eclipse-temurin:17-jdk
+FROM eclipse-temurin:21-jdk
 
 LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.com>"
 
