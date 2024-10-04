@@ -13,7 +13,7 @@ RUN gpg --batch --keyserver hkp://keyserver.ubuntu.com --recv-keys 9B90BFD14309C
 
 # Set environment variables to identify the right Lightstreamer version and edition
 ENV LIGHTSTREAMER_VERSION 7.4.5
-ENV LIGHTSTREAMER_URL_DOWNLOAD https://lightstreamer.com/distr/ls-server/${LIGHTSTREAMER_VERSION}/Lightstreamer-${LIGHTSTREAMER_VERSION}.tar.gz
+ENV LIGHTSTREAMER_URL_DOWNLOAD https://lightstreamer.com/distros/ls-server/${LIGHTSTREAMER_VERSION}/Lightstreamer-${LIGHTSTREAMER_VERSION}.tar.gz
 
 # Download the package from the Lightstreamer site, verify the signature, and unpack
 RUN set -ex; \

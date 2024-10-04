@@ -12,7 +12,7 @@ RUN apt-get -y update \
 RUN gpg --batch --keyserver hkp://keyserver.ubuntu.com --recv-keys 9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 
 # Set environment variables to identify the right Lightstreamer version and edition
-ENV LIGHTSTREAMER_URL_DOWNLOAD https://lightstreamer.com/distr/ls-server/6.1.0/Lightstreamer_Allegro-Presto-Vivace_6_1_0_20170123.tar.gz
+ENV LIGHTSTREAMER_URL_DOWNLOAD https://lightstreamer.com/distros/ls-server/6.1.0/Lightstreamer_Allegro-Presto-Vivace_6_1_0_20170123.tar.gz
 
 # Set the temporary working dir
 WORKDIR /lightstreamer
