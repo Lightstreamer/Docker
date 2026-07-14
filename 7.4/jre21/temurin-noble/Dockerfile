@@ -2,7 +2,7 @@
 FROM buildpack-deps:bookworm-curl AS builder
 
 # Set args to identify the right Lightstreamer version to download and the right public key to verify the signature of the downloaded package
-ARG LIGHTSTREAMER_URL_DOWNLOAD=https://lightstreamer.com/distros/ls-server/7.4.9/Lightstreamer-7.4.9.tar.gz
+ARG LIGHTSTREAMER_URL_DOWNLOAD=https://lightstreamer.com/distros/ls-server/7.4.8/Lightstreamer-7.4.8.tar.gz
 ARG FINGERPRINT=9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 
 RUN set -ex; \
@@ -30,7 +30,7 @@ RUN set -ex; \
 # Set the base image for the final image
 FROM eclipse-temurin:21-jre-noble
 LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.com>"
-ENV LIGHTSTREAMER_VERSION=7.4.9
+ENV LIGHTSTREAMER_VERSION=7.4.8
 
 RUN groupadd -g 10000 lightstreamer \
         && useradd --no-log-init -M -s /usr/sbin/nologin -g lightstreamer -u 10000 lightstreamer
