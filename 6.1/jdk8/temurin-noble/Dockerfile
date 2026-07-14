@@ -1,7 +1,7 @@
 # Set the base image 
 FROM buildpack-deps:bookworm-curl AS builder
 
-# Set args to identify the right Lightstreamer version
+# Set args to identify the right Lightstreamer version to download and the right public key to verify the signature of the downloaded package
 ARG LIGHTSTREAMER_URL_DOWNLOAD=https://lightstreamer.com/distros/ls-server/6.1.0/Lightstreamer-6.1.0.tar.gz
 ARG FINGERPRINT=9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 
@@ -12,7 +12,6 @@ RUN set -ex; \
         && curl -fSL -o Lightstreamer.tar.gz.asc ${LIGHTSTREAMER_URL_DOWNLOAD}.asc \
 # Import Lighstreamer's public key and verify the signature of the downloaded package
         && export GNUPGHOME="$(mktemp -d)" \
-        # && gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "${FINGERPRINT}" \
         && gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "${FINGERPRINT}" \
         && gpg --batch --verify Lightstreamer.tar.gz.asc Lightstreamer.tar.gz \
 # Unpack
@@ -28,12 +27,13 @@ RUN set -ex; \
         && gpgconf --kill all \
 	&& rm -rf "$GNUPGHOME"
 
+# Set the base image for the final image
 FROM eclipse-temurin:8-jdk-noble
 LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.com>"
 ENV LIGHTSTREAMER_VERSION=6.1.0
 
-RUN groupadd -r -g 10000 lightstreamer \
-        && useradd --no-log-init -r -g lightstreamer -u 10000 lightstreamer
+RUN groupadd -g 10000 lightstreamer \
+        && useradd --no-log-init -M -s /usr/sbin/nologin -g lightstreamer -u 10000 lightstreamer
 
 COPY --from=builder --chown=lightstreamer:lightstreamer /lightstreamer /lightstreamer
 
