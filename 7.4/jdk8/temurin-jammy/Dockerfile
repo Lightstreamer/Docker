@@ -33,7 +33,7 @@ LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.c
 ENV LIGHTSTREAMER_VERSION=7.4.8
 
 RUN groupadd -g 10000 lightstreamer \
-        && useradd --no-log-init -M -s /usr/sbin/nologin -g lightstreamer -u 10000 lightstreamer7.4.9
+        && useradd --no-log-init -M -s /usr/sbin/nologin -g lightstreamer -u 10000 lightstreamer
 
 COPY --from=builder --chown=lightstreamer:lightstreamer /lightstreamer /lightstreamer
 
