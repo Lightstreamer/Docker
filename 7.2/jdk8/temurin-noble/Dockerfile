@@ -5,13 +5,15 @@ FROM buildpack-deps:bookworm-curl AS builder
 ARG LIGHTSTREAMER_URL_DOWNLOAD=https://lightstreamer.com/distros/ls-server/7.2.2/Lightstreamer-7.2.2.tar.gz
 ARG FINGERPRINT=9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 
+WORKDIR /lightstreamer
+
 RUN set -ex; \
 # Download the package from the Lightstreamer site
-        mkdir /lightstreamer && cd /lightstreamer \
-        && curl -fSL -o Lightstreamer.tar.gz ${LIGHTSTREAMER_URL_DOWNLOAD} \
+        curl -fSL -o Lightstreamer.tar.gz ${LIGHTSTREAMER_URL_DOWNLOAD} \
         && curl -fSL -o Lightstreamer.tar.gz.asc ${LIGHTSTREAMER_URL_DOWNLOAD}.asc \
 # Import Lighstreamer's public key and verify the signature of the downloaded package
-        && export GNUPGHOME="$(mktemp -d)" \
+        && GNUPGHOME="$(mktemp -d)" \
+        && export GNUPGHOME \
         && gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "${FINGERPRINT}" \
         && gpg --batch --verify Lightstreamer.tar.gz.asc Lightstreamer.tar.gz \
 # Unpack
