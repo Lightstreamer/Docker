@@ -5,13 +5,15 @@ FROM buildpack-deps:bookworm-curl AS builder
 ARG LIGHTSTREAMER_URL_DOWNLOAD=https://lightstreamer.com/distros/ls-server/${LIGHTSTREAMER_VERSION}/Lightstreamer-${LIGHTSTREAMER_VERSION}.tar.gz
 ARG FINGERPRINT=9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 
+WORKDIR /lightstreamer
+
 RUN set -ex; \
 # Download the package from the Lightstreamer site
-        mkdir /lightstreamer && cd /lightstreamer \
-        && curl -fSL -o Lightstreamer.tar.gz ${LIGHTSTREAMER_URL_DOWNLOAD} \
+        curl -fSL -o Lightstreamer.tar.gz ${LIGHTSTREAMER_URL_DOWNLOAD} \
         && curl -fSL -o Lightstreamer.tar.gz.asc ${LIGHTSTREAMER_URL_DOWNLOAD}.asc \
 # Import Lighstreamer's public key and verify the signature of the downloaded package
-        && export GNUPGHOME="$(mktemp -d)" \
+        && GNUPGHOME="$(mktemp -d)" \
+        && export GNUPGHOME \
         && gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "${FINGERPRINT}" \
         && gpg --batch --verify Lightstreamer.tar.gz.asc Lightstreamer.tar.gz \
 # Unpack
@@ -28,7 +30,7 @@ RUN set -ex; \
 	&& rm -rf "$GNUPGHOME"
 
 # Set the base image for the final image
-FROM eclipse-temurin:${JAVA_VERSION}-${JDK_JRE}-${OS_VARIANT}
+FROM eclipse-temurin:${JAVA_VERSION}-${FLAVOR}-${OS_VARIANT}
 LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.com>"
 ENV LIGHTSTREAMER_VERSION=${LIGHTSTREAMER_VERSION}
 
