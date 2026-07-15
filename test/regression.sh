@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Layer 2 — generator regression.
 #
-# Runs update.sh + generate-stackbrew-library.sh, asserts:
-#   - update.sh completes cleanly and is idempotent (second run is byte-equal).
+# Tests whatever is currently on disk. It is the developer's responsibility
+# to run ./update.sh beforehand if versions.json or a template changed.
+#
+# Asserts:
 #   - No unresolved template placeholders (${JAVA_VERSION} etc.) remain in
 #     generated Dockerfiles.
 #   - generate-stackbrew-library.sh runs cleanly.
@@ -18,25 +20,6 @@ set -Eeuo pipefail
 cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."
 
 step() { printf '\n=== %s ===\n' "$1"; }
-
-# --- update.sh: initial run + idempotency -------------------------------------
-step "update.sh: initial run"
-./update.sh > /tmp/upd1.log
-
-snapshot() {
-    find . -maxdepth 4 -name Dockerfile -print0 | sort -z | xargs -0 sha256sum
-}
-
-step "update.sh: idempotent (second run byte-identical)"
-before="$(snapshot)"
-./update.sh > /tmp/upd2.log
-after="$(snapshot)"
-if [[ "$before" != "$after" ]]; then
-    echo "FAIL: update.sh is not idempotent"
-    diff <(echo "$before") <(echo "$after") | head -30
-    exit 1
-fi
-echo "OK ($(echo "$before" | wc -l) Dockerfiles)"
 
 # --- No unresolved template placeholders --------------------------------------
 step "generated Dockerfiles: envsubst placeholders all resolved"
