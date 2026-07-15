@@ -25,6 +25,16 @@ jq -r '
 | while read -r APP_VERSION LIGHTSTREAMER_VERSION FLAVOR JAVA_VERSION OS_VARIANT VARIANT; do
     export APP_VERSION LIGHTSTREAMER_VERSION FLAVOR JAVA_VERSION OS_VARIANT
 
+    # Legacy patch: Lightstreamer <7.2 had a hard-coded /usr/jdk1.8.0 path in
+    # bin/unix-like/LS.sh; rewrite it to $JAVA_HOME so the launch script uses
+    # the JDK provided by the eclipse-temurin base image. Empty for 7.2+.
+    if [[ "$APP_VERSION" == 6.* || "$APP_VERSION" == "7.0" || "$APP_VERSION" == "7.1" ]]; then
+        LEGACY_PATCH=$'# Replace the fictitious jdk path with the JAVA_HOME environment variable in the launch script file\n        && sed -i -- \'s/\\/usr\\/jdk1.8.0/$JAVA_HOME/\' bin/unix-like/LS.sh \\\n'
+    else
+        LEGACY_PATCH=""
+    fi
+    export LEGACY_PATCH
+
     # Full variant: <combo>/            Base variant: <combo>-base/
     # (DOI convention: canonical variant has no suffix, others do.)
     combo="${APP_VERSION}/${FLAVOR}${JAVA_VERSION}/temurin-${OS_VARIANT}"
@@ -37,7 +47,7 @@ jq -r '
     fi
     mkdir -p "$target_dir"
 
-    envsubst '${JAVA_VERSION} ${FLAVOR} ${OS_VARIANT} ${LIGHTSTREAMER_VERSION}' \
+    envsubst '${JAVA_VERSION} ${FLAVOR} ${OS_VARIANT} ${LIGHTSTREAMER_VERSION} ${LEGACY_PATCH}' \
         < "$template" > "${target_dir}/Dockerfile"
 
     echo "Generated: ${target_dir#"$tmp/"}/Dockerfile (Lightstreamer ${LIGHTSTREAMER_VERSION}, ${VARIANT})"
