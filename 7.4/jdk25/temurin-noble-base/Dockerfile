@@ -1,3 +1,9 @@
+#
+# NOTE: THIS DOCKERFILE IS GENERATED VIA "update.sh"
+#
+# PLEASE DO NOT EDIT IT DIRECTLY.
+#
+
 # "Base" edition — same runtime as the full image, but with all content that
 # downstream images are expected to provide themselves removed: factory config
 # XMLs, welcome page, welcome-adapter resources, and PDF documentation.
