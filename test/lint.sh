@@ -1,22 +1,14 @@
 #!/usr/bin/env bash
-# Layer 1 — static lint.
-#
-# No side effects, no file writes. Runs:
-#   - shellcheck on every shell script in the repo
-#   - jq well-formedness + schema invariants on versions.json
-#   - hadolint on Dockerfile.template
-#
-# Missing tools are treated as SKIP (soft-fail). A real failure sets fail=1
-# and the script exits non-zero at the end.
+# Layer 1 — static lint: shellcheck, versions.json schema, hadolint.
+# Missing tools are soft-skipped; real failures exit non-zero.
 
 set -Eeuo pipefail
-
 cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."
 
 fail=0
 step() { printf '\n=== %s ===\n' "$1"; }
 
-# --- shellcheck ---------------------------------------------------------------
+# --- shellcheck ---
 step "shellcheck"
 if ! command -v shellcheck >/dev/null; then
     echo "SKIP: shellcheck not installed"
@@ -27,17 +19,8 @@ else
     shellcheck --severity=warning "${scripts[@]}" || fail=1
 fi
 
-# --- jq: well-formedness ------------------------------------------------------
-step "jq: versions.json is well-formed"
-if ! jq empty versions.json; then
-    fail=1
-fi
-
-# --- jq: schema invariants ----------------------------------------------------
-# Each check is a single boolean expression; -e makes jq exit non-zero if the
-# last output is false/null. Wrapping in "[…] | all" reduces a stream to one
-# boolean, which is what -e wants.
-
+# --- jq ---
+# check_jq wraps a boolean jq expression; -e exits non-zero on false/null.
 check_jq() {
     local msg="$1"; shift
     if ! jq -e "$1" versions.json > /dev/null 2>&1; then
@@ -45,6 +28,9 @@ check_jq() {
         fail=1
     fi
 }
+
+step "jq: versions.json is well-formed"
+jq empty versions.json || fail=1
 
 step "jq: top-level shape"
 check_jq ".variants is a non-empty array of strings" \
@@ -62,33 +48,29 @@ check_jq "each .os is a non-empty array of strings" \
 check_jq "each runtimes[flavor] is a non-empty array of strings" \
     '[.versions[] | .runtimes | to_entries[] | .value | type == "array" and length > 0 and all(.[]; type == "string")] | all'
 
-step "jq: version key is a prefix of the patch version (e.g. \"7.4\" -> \"7.4.8\")"
+step "jq: version key is a prefix of the patch version"
 check_jq "version keys match their patch versions" \
     '[.versions | to_entries[] | .key as $k | .value.version | startswith($k + ".")] | all'
 
-# NOTE: The old "default (flavor, java, os) exists in overall-latest" checks
-# were dropped when defaults moved out of versions.json into
-# generate-stackbrew-library.sh. If the hardcoded defaults there don't match
-# a real image, the "'latest' appears exactly once" check in regression.sh
-# catches it downstream (the latest tag simply won't be assigned).
-
-# --- hadolint -----------------------------------------------------------------
-step "hadolint: Dockerfile templates"
+# --- hadolint ---
+step "hadolint: generated Dockerfiles"
 if ! command -v hadolint >/dev/null; then
     echo "SKIP: hadolint not installed"
 else
-    # DL3006 (untagged FROM): false positive for FROM eclipse-temurin:${JAVA_VERSION}-... .
-    # DL3008 (pin apt versions): buildpack-deps ships the tools we need, we don't install more.
-    for f in Dockerfile.template Dockerfile-*.template; do
-        [[ -f "$f" ]] || continue
-        hadolint --ignore DL3006 --ignore DL3008 "$f" || fail=1
-    done
+    shopt -s nullglob
+    dockerfiles=( [0-9]*/*/temurin-*/Dockerfile )
+    if (( ${#dockerfiles[@]} == 0 )); then
+        echo "SKIP: no generated Dockerfiles present (run ./update.sh first)"
+    else
+        # DL3008: apt version pinning (buildpack-deps ships what we need).
+        # SC2016: literal $JAVA_HOME in single quotes (intentional in legacy sed).
+        for f in "${dockerfiles[@]}"; do
+            hadolint --ignore DL3008 --ignore SC2016 "$f" || fail=1
+        done
+        echo "linted ${#dockerfiles[@]} generated Dockerfiles"
+    fi
 fi
 
-# --- summary ------------------------------------------------------------------
 echo
-if (( fail )); then
-    echo "LINT: FAILED"
-    exit 1
-fi
+(( fail )) && { echo "LINT: FAILED"; exit 1; }
 echo "LINT: OK"
