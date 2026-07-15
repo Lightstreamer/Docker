@@ -31,7 +31,9 @@ RUN set -ex; \
         && tar -xf Lightstreamer.tar.gz --strip-components=1 \
 # Strip content that downstream images are expected to provide themselves.
         && rm -rf docs pages adapters/welcome_res \
-        && rm -f  conf/*.xml \
+        && rm -f conf/*.xml \
+        && rm -rf bin/unix-like/install \
+        && rm -rf bin/windows \
 # Finally, remove no longer needed files
         && rm Lightstreamer.tar.gz Lightstreamer.tar.gz.asc \
         && gpgconf --kill all \
