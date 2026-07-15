@@ -29,9 +29,13 @@ RUN set -ex; \
         && gpg --batch --verify Lightstreamer.tar.gz.asc Lightstreamer.tar.gz \
 # Unpack
         && tar -xf Lightstreamer.tar.gz --strip-components=1 \
+# Replace the fictitious jdk path with the JAVA_HOME environment variable in the launch script file
+        && sed -i -- 's/\/usr\/jdk1.8.0/$JAVA_HOME/' bin/unix-like/LS.sh \
 # Strip content that downstream images are expected to provide themselves.
         && rm -rf docs pages adapters/welcome_res \
-        && rm -f  conf/*.xml \
+        && rm -f conf/*.xml \
+        && rm -rf bin/unix-like/install \
+        && rm -rf bin/windows \
 # Finally, remove no longer needed files
         && rm Lightstreamer.tar.gz Lightstreamer.tar.gz.asc \
         && gpgconf --kill all \
