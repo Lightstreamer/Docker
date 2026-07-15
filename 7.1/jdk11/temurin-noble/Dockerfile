@@ -4,10 +4,8 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-# Set the base image 
 FROM buildpack-deps:bookworm-curl AS builder
 
-# Set args to identify the right Lightstreamer version to download and the right public key to verify the signature of the downloaded package
 ARG LIGHTSTREAMER_URL_DOWNLOAD=https://lightstreamer.com/distros/ls-server/7.1.3/Lightstreamer-7.1.3.tar.gz
 ARG FINGERPRINT=9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 
@@ -17,7 +15,7 @@ RUN set -ex; \
 # Download the package from the Lightstreamer site
         curl -fSL -o Lightstreamer.tar.gz ${LIGHTSTREAMER_URL_DOWNLOAD} \
         && curl -fSL -o Lightstreamer.tar.gz.asc ${LIGHTSTREAMER_URL_DOWNLOAD}.asc \
-# Import Lighstreamer's public key and verify the signature of the downloaded package
+# Import Lightstreamer's public key and verify the signature of the downloaded package
         && GNUPGHOME="$(mktemp -d)" \
         && export GNUPGHOME \
         && gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "${FINGERPRINT}" \
@@ -35,9 +33,8 @@ RUN set -ex; \
 # Finally, remove no longer needed files
         && rm Lightstreamer.tar.gz Lightstreamer.tar.gz.asc \
         && gpgconf --kill all \
-	&& rm -rf "$GNUPGHOME"
+        && rm -rf "$GNUPGHOME"
 
-# Set the base image for the final image
 FROM eclipse-temurin:11-jdk-noble
 LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.com>"
 ENV LIGHTSTREAMER_VERSION=7.1.3
@@ -45,15 +42,16 @@ ENV LIGHTSTREAMER_VERSION=7.1.3
 RUN groupadd -g 10000 lightstreamer \
         && useradd --no-log-init -M -s /usr/sbin/nologin -g lightstreamer -u 10000 lightstreamer
 
-COPY --from=builder --chown=lightstreamer:lightstreamer /lightstreamer /lightstreamer
+# Group-owned by root (GID 0) and g=u so OpenShift's arbitrary UID (always in
+# root group) can read/write. Harmless on plain Docker (user 10000 still owns
+# the files and gets the same permissions via the user bits).
+COPY --from=builder --chown=lightstreamer:root /lightstreamer /lightstreamer
+RUN chmod -R g=u /lightstreamer
 
 USER 10000:10000
 
-# Export TCP port 8080
 EXPOSE 8080
 
-# Set the final working dir
 WORKDIR /lightstreamer/bin/unix-like
 
-# Start the server
 CMD ["./LS.sh", "run"]
