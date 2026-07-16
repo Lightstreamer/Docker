@@ -22,6 +22,9 @@ default_variant="full"
 # Patch version per "major.minor", plus the ordered list of keys (oldest -> newest).
 declare -A patch_of=()
 mm_list=()
+# Uses `< <(jq …)` (process substitution) rather than `jq … | while` so the
+# loop runs in the current shell and its assignments to patch_of/mm_list
+# survive after `done`. A pipe would put the loop in a subshell.
 while read -r mm patch; do
     patch_of[$mm]="$patch"
     mm_list+=( "$mm" )
@@ -151,6 +154,14 @@ for dir in "${image_dirs[@]}"; do
     (( is_canonical && is_latest_minor ))   && tags+=( "${major}${vbare}" )
     (( is_canonical && is_overall_latest )) && tags+=( "$( (( is_default_variant )) && echo latest || echo "${variant}" )" )
 
+    # Example output block (full-variant, canonical image on 7.4):
+    #   Tags: 7.4.8-jdk25-temurin-noble, 7.4-jdk25-temurin-noble, 7-jdk25-temurin-noble,
+    #         7.4.8-jdk25, 7.4-jdk25, 7-jdk25,
+    #         7.4.8-jdk25-temurin, 7.4-jdk25-temurin, 7-jdk25-temurin,
+    #         7.4.8, 7.4, 7, latest
+    #   Architectures: amd64, arm64v8
+    #   GitCommit: 156c40…
+    #   Directory: 7.4/jdk25/temurin-noble
     printf '\nTags: %s\nArchitectures: %s\nGitCommit: %s\nDirectory: %s\n' \
         "$(join_by ', ' "${tags[@]}")" "$architecture" "$commit" "$dir"
 done
