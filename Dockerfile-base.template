@@ -38,7 +38,7 @@ ${LEGACY_PATCH}# Strip content that downstream images are expected to provide th
         && gpgconf --kill all \
         && rm -rf "$GNUPGHOME"
 
-FROM eclipse-temurin:${JAVA_VERSION}-${FLAVOR}-${OS_VARIANT}
+FROM eclipse-temurin:${JAVA_VERSION}-${FLAVOR}
 LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.com>"
 ENV LIGHTSTREAMER_VERSION=${LIGHTSTREAMER_VERSION}
 
