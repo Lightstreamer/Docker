@@ -219,7 +219,8 @@ After your source-repo change is merged into `master` (via the [Branching and PR
 # In the source repo (on master, fully up to date)
 ./generate-stackbrew-library.sh > lightstreamer
 ./test/lint.sh && ./test/regression.sh
-bashbrew --library "$(pwd)" build lightstreamer   # optional but recommended — same build DOI's CI runs
+bashbrew --library "$(pwd)" list --build-order --uniq lightstreamer   # preview what would be built
+bashbrew --library "$(pwd)" build --pull always lightstreamer         # optional but recommended — same build DOI's CI runs
 
 # In the official-images fork
 cd <path-to-official-images-fork>
@@ -239,7 +240,9 @@ gh pr create --repo docker-library/official-images --base master \
 Notes on the surprising-looking commands:
 
 - **`git reset --hard upstream/master` + `git push --force-with-lease` on the fork's `master`** — the fork's master serves purely as a launching pad for PR branches; it should always mirror upstream. `--force-with-lease` is a safer variant of `--force` that refuses to push if someone else has updated the remote in the meantime.
-- **`bashbrew --library "$(pwd)" build lightstreamer`** — `"$(pwd)"` is the source repo. Bashbrew reads the `lightstreamer` manifest from that directory and builds every block using the exact procedure DOI's CI runs. Green here means the DOI bot will most likely be green too. Skip for trivial changes (patch bump on already-published tags); recommended for template changes, new variants, or tag-scheme rework.
+- **`bashbrew --library "$(pwd)" list --build-order --uniq lightstreamer`** — prints the images the follow-up `build` will process, in dependency order. Always visible, so useful as a sanity check that the manifest parses.
+- **`bashbrew --library "$(pwd)" build --pull always lightstreamer`** — `"$(pwd)"` is the source repo. Bashbrew reads the `lightstreamer` manifest from that directory and builds every block using the exact procedure DOI's CI runs. **The command is silent when every image is already built and cached locally** — that's success, not a hang. `--pull always` forces a fresh base-image pull each run, matching CI behavior and making cached-image silence rare in practice. Green here means the DOI bot will most likely be green too. Skip for trivial changes (patch bump on already-published tags); recommended for template changes, new variants, or tag-scheme rework.
+- **`--library` path depends on which repo you're running from.** From the source repo, the manifest is at the top level, so `--library "$(pwd)"` is correct. From the official-images fork, the manifest lives under `library/`, so use `--library "$(pwd)/library"` instead. Without an explicit `--library`, bashbrew falls back to its built-in default (often a stale hard-coded path) and reports `unable to find a manifest named "lightstreamer"`. Alternatively, set `BASHBREW_LIBRARY` in your shell to whichever fork you use most, and drop the flag.
 
 ### Iterating on reviewer comments
 
