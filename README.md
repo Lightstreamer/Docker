@@ -5,3 +5,7 @@ This is the Git repo of the Docker [official image](https://docs.docker.com/dock
 The full readme is generated over in [docker-library/docs](https://github.com/docker-library/docs), specificially in [docker-library/docs/lightstreamer](https://github.com/docker-library/docs/tree/master/lightstreamer).
 
 See a change merged here that doesn't show up on the Docker Hub yet? Check [the "library/lightstreamer" manifest file in the docker-library/official-images repo](https://github.com/docker-library/official-images/blob/master/library/lightstreamer), especially [PRs with the "library/lightstreamer" label on that repo](https://github.com/docker-library/official-images/labels/library%2Flightstreamer). For more information about the official images process, see the [docker-library/official-images readme](https://github.com/docker-library/official-images/blob/master/README.md).
+
+## Contributing
+
+See [docs/making-changes.md](docs/making-changes.md) for the contributor playbook — how to bump patch versions, add Java runtimes, modify the Dockerfile templates, and publish updates to Docker Official Images.
