@@ -10,8 +10,8 @@ command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-# Explode the manifest into one "mm patch flavor java os variant" line per
-# (runtime × java × os × variant) combination. The Cartesian product is driven
+# Explode the manifest into one "mm patch flavor java variant" line per
+# (runtime × java × variant) combination. The Cartesian product is driven
 # entirely by versions.json — no cross-product code here.
 jq -r '
   .variants[] as $var |
@@ -19,11 +19,10 @@ jq -r '
   .key as $mm | .value.version as $patch |
   (.value.runtimes | to_entries[]) as $flav |
   $flav.value[] as $java |
-  .value.os[] as $os |
-  "\($mm) \($patch) \($flav.key) \($java) \($os) \($var)"
+  "\($mm) \($patch) \($flav.key) \($java) \($var)"
 ' versions.json \
-| while read -r APP_VERSION LIGHTSTREAMER_VERSION FLAVOR JAVA_VERSION OS_VARIANT VARIANT; do
-    export APP_VERSION LIGHTSTREAMER_VERSION FLAVOR JAVA_VERSION OS_VARIANT
+| while read -r APP_VERSION LIGHTSTREAMER_VERSION FLAVOR JAVA_VERSION VARIANT; do
+    export APP_VERSION LIGHTSTREAMER_VERSION FLAVOR JAVA_VERSION
 
     # Legacy patch: Lightstreamer <7.2 had a hard-coded /usr/jdk1.8.0 path in
     # bin/unix-like/LS.sh; rewrite it to $JAVA_HOME so the launch script uses
@@ -37,7 +36,7 @@ jq -r '
 
     # Full variant: <combo>/            Base variant: <combo>-base/
     # (DOI convention: canonical variant has no suffix, others do.)
-    combo="${APP_VERSION}/${FLAVOR}${JAVA_VERSION}/temurin-${OS_VARIANT}"
+    combo="${APP_VERSION}/${FLAVOR}${JAVA_VERSION}"
     if [[ "$VARIANT" == "full" ]]; then
         target_dir="${tmp}/${combo}"
         template="Dockerfile.template"
@@ -47,7 +46,7 @@ jq -r '
     fi
     mkdir -p "$target_dir"
 
-    envsubst '${JAVA_VERSION} ${FLAVOR} ${OS_VARIANT} ${LIGHTSTREAMER_VERSION} ${LEGACY_PATCH}' \
+    envsubst '${JAVA_VERSION} ${FLAVOR} ${LIGHTSTREAMER_VERSION} ${LEGACY_PATCH}' \
         < "$template" > "${target_dir}/Dockerfile"
 
     echo "Generated: ${target_dir#"$tmp/"}/Dockerfile (Lightstreamer ${LIGHTSTREAMER_VERSION}, ${VARIANT})"
