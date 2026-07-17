@@ -33,7 +33,7 @@ ${LEGACY_PATCH}# Adjust the logging configuration in order to log only on standa
         && gpgconf --kill all \
         && rm -rf "$GNUPGHOME"
 
-FROM eclipse-temurin:${JAVA_VERSION}-${FLAVOR}-${OS_VARIANT}
+FROM eclipse-temurin:${JAVA_VERSION}-${FLAVOR}
 LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.com>"
 ENV LIGHTSTREAMER_VERSION=${LIGHTSTREAMER_VERSION}
 

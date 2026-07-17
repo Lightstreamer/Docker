@@ -17,7 +17,7 @@ command -v docker >/dev/null || { echo "docker is required" >&2; exit 1; }
 command -v curl >/dev/null   || { echo "curl is required" >&2; exit 1; }
 
 shopt -s nullglob
-image_dirs=( [0-9]*/*/temurin-*/Dockerfile )
+image_dirs=( [0-9]*/*/Dockerfile )
 image_dirs=( "${image_dirs[@]%/Dockerfile}" )
 (( ${#image_dirs[@]} > 0 )) || { echo "no images to test (run ./update.sh first?)" >&2; exit 1; }
 

@@ -38,13 +38,11 @@ check_jq ".variants is a non-empty array of strings" \
 check_jq ".versions is a non-empty object" \
     '.versions | type == "object" and (to_entries | length > 0)'
 
-step "jq: every version has a semver-shaped patch and non-empty runtimes/os"
+step "jq: every version has a semver-shaped patch and non-empty runtimes"
 check_jq "each .version matches N.N.N" \
     '[.versions[] | .version | test("^[0-9]+\\.[0-9]+\\.[0-9]+$")] | all'
 check_jq "each .runtimes is a non-empty object" \
     '[.versions[] | .runtimes | type == "object" and (to_entries | length > 0)] | all'
-check_jq "each .os is a non-empty array of strings" \
-    '[.versions[] | .os | type == "array" and length > 0 and all(.[]; type == "string")] | all'
 check_jq "each runtimes[flavor] is a non-empty array of strings" \
     '[.versions[] | .runtimes | to_entries[] | .value | type == "array" and length > 0 and all(.[]; type == "string")] | all'
 
@@ -58,7 +56,7 @@ if ! command -v hadolint >/dev/null; then
     echo "SKIP: hadolint not installed"
 else
     shopt -s nullglob
-    dockerfiles=( [0-9]*/*/temurin-*/Dockerfile )
+    dockerfiles=( [0-9]*/*/Dockerfile )
     if (( ${#dockerfiles[@]} == 0 )); then
         echo "SKIP: no generated Dockerfiles present (run ./update.sh first)"
     else

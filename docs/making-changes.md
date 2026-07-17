@@ -5,15 +5,15 @@ This document is for anyone modifying the Lightstreamer Docker images — whethe
 ## How the repository is organised
 
 ```
-├── versions.json                     ← Source of truth for versions × runtimes × OS × variants
+├── versions.json                     ← Source of truth for versions × runtimes × variants
 ├── Dockerfile.template               ← Template for the "full" edition
 ├── Dockerfile-base.template          ← Template for the "base" edition
 ├── update.sh                         ← Regenerates the Dockerfile tree from versions.json
 ├── generate-stackbrew-library.sh     ← Regenerates the `lightstreamer` manifest
 ├── lightstreamer                     ← DOI manifest (generated; committed for review)
 │
-├── <major.minor>/<runtime><java>/temurin-<os>/Dockerfile        ← generated
-├── <major.minor>/<runtime><java>/temurin-<os>-base/Dockerfile   ← generated
+├── <major.minor>/<runtime><java>/Dockerfile         ← generated (full edition)
+├── <major.minor>/<runtime><java>-base/Dockerfile    ← generated (base edition)
 │
 ├── test/
 │   ├── lint.sh                       ← Layer 1: shellcheck, JSON schema, hadolint
@@ -32,12 +32,12 @@ flowchart LR
     A[versions.json] --> U[update.sh]
     T1[Dockerfile.template] --> U
     T2[Dockerfile-base.template] --> U
-    U --> D[Generated Dockerfiles<br/>mm/runtime+java/temurin-os/*]
+    U --> D[Generated Dockerfiles<br/>mm/runtime+java/*]
     D --> G[generate-stackbrew-library.sh]
     G --> L[lightstreamer<br/>DOI manifest]
 ```
 
-- **`update.sh`** iterates every `(version × runtime × java × os × variant)` combination in `versions.json`, feeds each through the appropriate template via `envsubst`, and writes one Dockerfile per combination.
+- **`update.sh`** iterates every `(version × runtime × java × variant)` combination in `versions.json`, feeds each through the appropriate template via `envsubst`, and writes one Dockerfile per combination.
 - **`generate-stackbrew-library.sh`** walks the generated tree, looks up patch versions from `versions.json`, and emits the DOI-format `lightstreamer` file with the tag list and git commit hashes.
 - **`lightstreamer`** is committed to the repo as a golden reference — the regression test compares fresh generator output against it, so any unintentional tag change surfaces in the PR diff.
 
@@ -74,8 +74,7 @@ Most frequent change. Edit exactly one line in `versions.json`:
 ```json
 "7.4": {
     "version": "7.4.9",                     ← change this
-    "runtimes": { "jdk": ["8", "11", "17", "21", "25"] },
-    "os": ["jammy", "noble"]
+    "runtimes": { "jdk": ["8", "11", "17", "21", "25"] }
 }
 ```
 
@@ -97,49 +96,31 @@ Add the version to `runtimes.jdk` for the affected `major.minor`:
 ```json
 "7.4": {
     "version": "7.4.9",
-    "runtimes": { "jdk": ["8", "11", "17", "21", "25", "26"] },
-    "os": ["jammy", "noble"]
+    "runtimes": { "jdk": ["8", "11", "17", "21", "25", "26"] }
 }
 ```
 
 Then:
 
 ```bash
-./update.sh                            # creates new 7.4/jdk26/temurin-*/ dirs
+./update.sh                            # creates new 7.4/jdk26[-base]/ dirs
 ./generate-stackbrew-library.sh > lightstreamer
 ./test/lint.sh && ./test/regression.sh
-git add versions.json 7.4/jdk26/ lightstreamer
+git add versions.json 7.4/jdk26 7.4/jdk26-base lightstreamer
 git commit -m "Add Java 26 support to 7.4"
 git push
 ```
 
 If Java 26 should become the new canonical/default (the one that gets bare tags like `7.4`, `latest`, `7`), also update `default_java` at the top of [`generate-stackbrew-library.sh`](../generate-stackbrew-library.sh) and regenerate.
 
-### 3. Add or remove an OS (e.g. drop `jammy`)
-
-Edit the `os` array for the affected version(s):
-
-```json
-"7.4": {
-    "version": "7.4.9",
-    "runtimes": { "jdk": [...] },
-    "os": ["noble"]                    ← removed "jammy"
-}
-```
-
-`./update.sh`'s atomic swap removes any leftover directories that no longer appear in the manifest.
-
-If the removed OS was the canonical one (`default_os` in `generate-stackbrew-library.sh`), pick a new default too.
-
-### 4. Add a new Lightstreamer major/minor (e.g. 7.5)
+### 3. Add a new Lightstreamer major/minor (e.g. 7.5)
 
 Add a new object under `.versions`:
 
 ```json
 "7.5": {
     "version": "7.5.0",
-    "runtimes": { "jdk": ["11", "17", "21", "25"] },
-    "os": ["noble"]
+    "runtimes": { "jdk": ["11", "17", "21", "25"] }
 }
 ```
 
@@ -148,7 +129,7 @@ Then regenerate. Note:
 - The **overall latest** (the version that earns `latest`/`<major>` tags) is determined by the LAST key in `.versions`. Put newer versions later.
 - If it's a new major (e.g. `8.0`), the `<major>-…` tag for `8` will move to it automatically.
 
-### 5. Modify a Dockerfile template
+### 4. Modify a Dockerfile template
 
 Edit `Dockerfile.template` (full edition) or `Dockerfile-base.template` (base edition). Then:
 
@@ -162,7 +143,7 @@ Edit `Dockerfile.template` (full edition) or `Dockerfile-base.template` (base ed
 
 The `build-and-run.sh` step is slow (10–30 min) but it's the only way to catch template bugs that only surface at `docker build` time — a broken template renders to a syntactically-fine Dockerfile that fails when Docker tries to execute it.
 
-### 6. Change tag naming rules
+### 5. Change tag naming rules
 
 Tag rules live inside the main loop of [`generate-stackbrew-library.sh`](../generate-stackbrew-library.sh) — read the inline comments there before editing.
 
@@ -221,14 +202,13 @@ Before running the [Workflow](#workflow) below, decide the PR title — you'll u
 | Routine patch bump | `lightstreamer: 7.4.10` |
 | Add a new Java version | `lightstreamer: add jdk26` |
 | Add a new major/minor | `lightstreamer: 7.5.0` |
-| Drop an OS | `lightstreamer: drop jammy` |
 | Structural change (tag scheme, new variant family, etc.) | `lightstreamer: refactor tag scheme; add -base variant` |
 
 Rules of thumb:
 
 - **State the *change*, not the motivation.** `refactor tag scheme` ✅, not `improve tag discoverability` ❌.
 - **Use a semicolon for two conceptually distinct changes** in one PR. Reviewers know to check each independently.
-- **Omit consequences** (OS pin, dependency bumps triggered by the change, etc.) — the body explains them. Keeps the title stable if the body evolves during review.
+- **Omit consequences** (dependency bumps triggered by the change, etc.) — the body explains them. Keeps the title stable if the body evolves during review.
 - **Reuse DOI's own vocabulary** where it exists — "refactor tag scheme", "add variant", "add architecture", "deprecate" — so the title sets the correct reviewer mental model.
 
 ### Workflow
