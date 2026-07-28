@@ -23,7 +23,7 @@ step() { printf '\n=== %s ===\n' "$1"; }
 
 # --- No unresolved template placeholders --------------------------------------
 step "generated Dockerfiles: envsubst placeholders all resolved"
-unresolved=$(grep -RHnE '\$\{(JAVA_VERSION|FLAVOR|LIGHTSTREAMER_VERSION|LEGACY_PATCH)\}' \
+unresolved=$(grep -RHnE '\$\{(JAVA_VERSION|FLAVOR|LIGHTSTREAMER_VERSION|LEGACY_PATCH|DOCS_DIR|EXTRA_STRIP)\}' \
     [0-9]*/*/Dockerfile 2>/dev/null || true)
 if [[ -n "$unresolved" ]]; then
     echo "FAIL: unresolved template placeholders:"
