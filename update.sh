@@ -34,6 +34,29 @@ jq -r '
     fi
     export LEGACY_PATCH
 
+    # Documentation directory to strip in the base edition: it was renamed from
+    # "DOCS-SDKs" to "docs" in Lightstreamer 7.1.2. We anchor the comparison on
+    # that release even though this repo never carries it (7.1's only patch here
+    # is 7.1.3); sort -V gives a proper ">= 7.1.2" test, so in practice the split
+    # is 7.0.x and earlier -> "DOCS-SDKs", 7.1.3 and later -> "docs".
+    if [[ "$(printf '%s\n%s\n' "$LIGHTSTREAMER_VERSION" "7.1.2" | sort -V | head -n1)" == "7.1.2" ]]; then
+        DOCS_DIR="docs"
+    else
+        DOCS_DIR="DOCS-SDKs"
+    fi
+    export DOCS_DIR
+
+    # The "adapter_remoting_infrastructure" folder was added in Lightstreamer
+    # 7.1.2 and removed again in 7.2, so it exists only in the 7.1 line at
+    # 7.1.2+. The base edition strips it (downstream images provide it); the
+    # 7.1-minor guard bounds the upper end, sort -V handles the 7.1.2 lower end.
+    if [[ "$APP_VERSION" == "7.1" && "$(printf '%s\n%s\n' "$LIGHTSTREAMER_VERSION" "7.1.2" | sort -V | head -n1)" == "7.1.2" ]]; then
+        EXTRA_STRIP=$'        && rm -rf adapter_remoting_infrastructure \\\n'
+    else
+        EXTRA_STRIP=""
+    fi
+    export EXTRA_STRIP
+
     # Full variant: <combo>/            Base variant: <combo>-base/
     # (DOI convention: canonical variant has no suffix, others do.)
     combo="${APP_VERSION}/${FLAVOR}${JAVA_VERSION}"
@@ -46,7 +69,7 @@ jq -r '
     fi
     mkdir -p "$target_dir"
 
-    envsubst '${JAVA_VERSION} ${FLAVOR} ${LIGHTSTREAMER_VERSION} ${LEGACY_PATCH}' \
+    envsubst '${JAVA_VERSION} ${FLAVOR} ${LIGHTSTREAMER_VERSION} ${LEGACY_PATCH} ${DOCS_DIR} ${EXTRA_STRIP}' \
         < "$template" > "${target_dir}/Dockerfile"
 
     echo "Generated: ${target_dir#"$tmp/"}/Dockerfile (Lightstreamer ${LIGHTSTREAMER_VERSION}, ${VARIANT})"
