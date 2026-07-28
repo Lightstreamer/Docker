@@ -10,7 +10,9 @@
 # The sed step that rewrites conf/lightstreamer_log_conf.xml is dropped too,
 # since the file it targets is stripped a moment later.
 
-FROM buildpack-deps:bookworm-curl AS builder
+FROM eclipse-temurin:8-jdk
+LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.com>"
+ENV LIGHTSTREAMER_VERSION=6.1.0
 
 ARG LIGHTSTREAMER_URL_DOWNLOAD=https://lightstreamer.com/distros/ls-server/6.1.0/Lightstreamer-6.1.0.tar.gz
 ARG FINGERPRINT=9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
@@ -18,8 +20,9 @@ ARG FINGERPRINT=9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 WORKDIR /lightstreamer
 
 RUN set -ex; \
+        apt-get update && apt-get install -y --no-install-recommends curl gnupg \
 # Download the package from the Lightstreamer site
-        curl -fSL -o Lightstreamer.tar.gz ${LIGHTSTREAMER_URL_DOWNLOAD} \
+        && curl -fSL -o Lightstreamer.tar.gz ${LIGHTSTREAMER_URL_DOWNLOAD} \
         && curl -fSL -o Lightstreamer.tar.gz.asc ${LIGHTSTREAMER_URL_DOWNLOAD}.asc \
 # Import Lightstreamer's public key and verify the signature of the downloaded package
         && GNUPGHOME="$(mktemp -d)" \
@@ -31,27 +34,23 @@ RUN set -ex; \
 # Replace the fictitious jdk path with the JAVA_HOME environment variable in the launch script file
         && sed -i -- 's/\/usr\/jdk1.8.0/$JAVA_HOME/' bin/unix-like/LS.sh \
 # Strip content that downstream images are expected to provide themselves.
-        && rm -rf docs pages adapters/welcome_res \
+        && rm -rf DOCS-SDKs pages adapters/welcome_res \
         && rm -f conf/*.xml \
         && rm -rf bin/unix-like/install \
         && rm -rf bin/windows \
-# Finally, remove no longer needed files
+# Remove no longer needed files
         && rm Lightstreamer.tar.gz Lightstreamer.tar.gz.asc \
         && gpgconf --kill all \
-        && rm -rf "$GNUPGHOME"
-
-FROM eclipse-temurin:8-jdk
-LABEL maintainer="Lightstreamer Server Development Team <support@lightstreamer.com>"
-ENV LIGHTSTREAMER_VERSION=6.1.0
-
-RUN groupadd -g 10000 lightstreamer \
-        && useradd --no-log-init -M -s /usr/sbin/nologin -g lightstreamer -u 10000 lightstreamer
-
+        && rm -rf "$GNUPGHOME" \
+        && rm -rf /var/lib/apt/lists/* \
+# Create a non-root user and group (UID/GID 10000) as the default runtime identity
+        && groupadd -g 10000 lightstreamer \
+        && useradd --no-log-init -M -s /usr/sbin/nologin -g lightstreamer -u 10000 lightstreamer \
 # Group-owned by root (GID 0) and g=u so OpenShift's arbitrary UID (always in
-# root group) can read/write. Downstream images that COPY additional content
-# (conf/, adapters/) should apply the same pattern to their own additions.
-COPY --from=builder --chown=lightstreamer:root /lightstreamer /lightstreamer
-RUN chmod -R g=u /lightstreamer
+# root group) can read/write. Downstream images that add content (conf/,
+# adapters/) should apply the same pattern to their own additions.
+        && chown -R lightstreamer:root /lightstreamer \
+        && chmod -R g=u /lightstreamer
 
 USER 10000:10000
 
