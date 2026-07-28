@@ -168,7 +168,9 @@ Run in order; each layer builds on the previous:
 
 The first two should pass on every commit. The third is optional per commit but expected before opening a PR that touches templates or the generator.
 
-## Commit conventions
+## Commit conventions (this repository)
+
+These apply to commits **in this source repository** — the topic-branch work from [Branching and PR flow](#branching-and-pr-flow) and the [Common changes](#common-changes) playbooks above (that's why the examples below match the `git commit -m` lines in those playbooks). They are *not* the same as the [PR title convention](#pr-title-convention) further down, which governs only the separate Docker Official Images PR.
 
 Small commits, one topic each. Suggested subject-line format:
 
