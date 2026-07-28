@@ -271,7 +271,19 @@ The GitHub PR auto-updates and the DOI bot re-runs its checks.
 
 ### Edge case: dry-run from a non-`master` branch
 
-The standard flow requires merging to `master` before submitting to DOI. For exceptional cases — say you want DOI maintainer feedback on a big refactor before merging it — `generate-stackbrew-library.sh` supports it: when run on a branch other than `master`, it automatically emits `GitFetch: refs/heads/<branch>` at the top of the manifest so DOI's `naughty.sh` check can find the referenced commits. Regenerating from `master` afterwards drops the line automatically; no cleanup needed.
+The standard flow requires merging to `master` before submitting to DOI, because DOI can only build commits that are **reachable on `github.com/Lightstreamer/Docker`**. For exceptional cases — say you want DOI maintainer feedback on a big refactor before merging it — you can point DOI at a topic branch instead, but the generator does **not** automate this; do it by hand:
+
+1. **Push the topic branch** to `github.com/Lightstreamer/Docker` so its commits are public. (A personal fork won't do — the manifest's `GitRepo` is the canonical repo, so that's where DOI fetches from.)
+2. **Add a `GitFetch` line by hand** to the generated manifest, right under `GitRepo`, so bashbrew/DOI's `naughty.sh` can locate commits that aren't on the default branch:
+
+   ```
+   GitRepo: https://github.com/Lightstreamer/Docker.git
+   GitFetch: refs/heads/<topic-branch>
+   ```
+
+3. **Do not commit this dry-run manifest.** `generate-stackbrew-library.sh` never emits `GitFetch`, so a committed manifest carrying that line would fail the golden-diff check in `./test/regression.sh` — and would be wrong anyway once the branch merges. Keep the edited manifest local (or strip the line before committing).
+
+Once the refactor merges to `master`, regenerate normally: the commits are then reachable on the default branch, no `GitFetch` is needed, and the manifest matches the committed golden again.
 
 ## Prerequisites (host tooling)
 
