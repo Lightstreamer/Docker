@@ -28,7 +28,7 @@ jq -r '
     # bin/unix-like/LS.sh; rewrite it to $JAVA_HOME so the launch script uses
     # the JDK provided by the eclipse-temurin base image. Empty for 7.2+.
     if [[ "$APP_VERSION" == 6.* || "$APP_VERSION" == "7.0" || "$APP_VERSION" == "7.1" ]]; then
-        LEGACY_PATCH=$'# Replace the fictitious jdk path with the JAVA_HOME environment variable in the launch script file\n        && sed -i -- \'s/\\/usr\\/jdk1.8.0/$JAVA_HOME/\' bin/unix-like/LS.sh \\\n'
+        LEGACY_PATCH=$'# Replace the fictitious jdk path with the JAVA_HOME environment variable in the launch script file\n        sed -i -- \'s/\\/usr\\/jdk1.8.0/$JAVA_HOME/\' bin/unix-like/LS.sh; \\\n'
     else
         LEGACY_PATCH=""
     fi
@@ -51,7 +51,7 @@ jq -r '
     # 7.1.2+. The base edition strips it (downstream images provide it); the
     # 7.1-minor guard bounds the upper end, sort -V handles the 7.1.2 lower end.
     if [[ "$APP_VERSION" == "7.1" && "$(printf '%s\n%s\n' "$LIGHTSTREAMER_VERSION" "7.1.2" | sort -V | head -n1)" == "7.1.2" ]]; then
-        EXTRA_STRIP=$'        && rm -rf adapter_remoting_infrastructure \\\n'
+        EXTRA_STRIP=$'        rm -rf adapter_remoting_infrastructure; \\\n'
     else
         EXTRA_STRIP=""
     fi
