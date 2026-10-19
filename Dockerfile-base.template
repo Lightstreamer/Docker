@@ -32,7 +32,7 @@ RUN set -eux; \
 # Unpack
         tar -xf Lightstreamer.tar.gz --strip-components=1; \
 ${LEGACY_PATCH}# Strip content that downstream images are expected to provide themselves.
-        rm -rf ${DOCS_DIR} pages adapters/welcome_res; \
+        rm -rf ${DOCS_DIR} examples;\
         rm -f conf/*.xml; \
         rm -rf bin/unix-like/install; \
         rm -rf bin/windows; \
