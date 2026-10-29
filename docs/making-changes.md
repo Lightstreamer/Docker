@@ -17,8 +17,10 @@ This document is for anyone modifying the Lightstreamer Docker images — whethe
 │
 ├── test/
 │   ├── lint.sh                       ← Layer 1: shellcheck, JSON schema, hadolint
-│   ├── regression.sh                 ← Layer 2: no unresolved placeholders, tag consistency, golden diff
+│   ├── regression.sh                 ← Layer 2: generated tree up to date, no unresolved placeholders, tag consistency, golden diff
 │   ├── golden-manifest.txt           ← Expected manifest without GitCommit lines (committed)
+│   ├── update-golden.sh              ← Regenerates the golden and shows the diff to review
+│   ├── check-release.sh              ← Publish-time gate: manifest GitCommits are on master and current
 │   └── build-and-run.sh              ← Layer 3: build every image, healthcheck the full ones
 │
 └── docs/                             ← This file lives here
@@ -43,11 +45,7 @@ flowchart LR
 - **`lightstreamer`** is not committed. Generate it from an up-to-date `master` when you publish to DOI, because its `GitCommit` hashes depend on history and merge style.
 - **`test/golden-manifest.txt`** is the committed reference: the same manifest minus the `GitCommit` lines. The regression test compares fresh generator output (also minus `GitCommit`) against it, so any unintentional tag change surfaces in the PR diff.
 
-To update the golden after an intentional tag change:
-
-```bash
-./generate-stackbrew-library.sh | grep -v '^GitCommit:' > test/golden-manifest.txt
-```
+To update the golden after an intentional tag change, run `./test/update-golden.sh`. It rewrites the file and prints the diff; commit it only if every change is intended.
 
 ## Branching and PR flow
 
@@ -90,7 +88,7 @@ Then regenerate and commit:
 
 ```bash
 ./update.sh
-./generate-stackbrew-library.sh | grep -v '^GitCommit:' > test/golden-manifest.txt
+./test/update-golden.sh                 # review the printed diff
 ./test/lint.sh && ./test/regression.sh
 git add versions.json 7.4/ test/golden-manifest.txt
 git commit -m "Release 7.4.9"
@@ -112,7 +110,7 @@ Then:
 
 ```bash
 ./update.sh                            # creates new 7.4/jdk26[-base]/ dirs
-./generate-stackbrew-library.sh | grep -v '^GitCommit:' > test/golden-manifest.txt
+./test/update-golden.sh                # review the printed diff
 ./test/lint.sh && ./test/regression.sh
 git add versions.json 7.4/jdk26 7.4/jdk26-base test/golden-manifest.txt
 git commit -m "Add Java 26 support to 7.4"
@@ -162,7 +160,7 @@ After the change:
 If the change is intentional, the golden diff failure IS the sanity check — review the diff carefully, then regenerate the golden and commit it:
 
 ```bash
-./generate-stackbrew-library.sh | grep -v '^GitCommit:' > test/golden-manifest.txt
+./test/update-golden.sh
 ```
 
 ## Testing checklist
@@ -172,10 +170,16 @@ Run in order; each layer builds on the previous:
 | Layer | Command | Runtime | Purpose |
 |---|---|---|---|
 | Static | `./test/lint.sh` | ~1s | shellcheck + JSON schema + hadolint on generated Dockerfiles |
-| Regression | `./test/regression.sh` | ~1s | placeholders resolved, tag consistency, golden diff |
+| Regression | `./test/regression.sh` | ~1s | generated tree up to date (else run `./update.sh`), placeholders resolved, tag consistency, golden diff |
 | Build + run | `./test/build-and-run.sh` | 10–30 min | actually builds every image; runs each full-edition variant and checks `/lightstreamer/healthcheck` |
 
 The first two should pass on every commit. The third is optional per commit but expected before opening a PR that touches templates or the generator.
+
+### Publish-time check (not a layer)
+
+`./test/check-release.sh` is separate from the layers above. It validates the **manifest you are about to submit to DOI**, so it runs once per publication, not per commit, and only on an up-to-date `master` (it needs `git fetch origin` first). It is run manually by whoever opens the DOI PR, as a step of the [Workflow](#workflow); nothing calls it automatically.
+
+The layers above deliberately ignore the `GitCommit` hashes in the manifest, because they depend on history and merge style. This script is the only check on them. It fails if a hash is not reachable from `origin/master` (and `origin` must be the manifest's `GitRepo`, not a fork; set `DEFAULT_REF=<remote>/master` otherwise), if the commit lacks the image's Dockerfile, or if the image directory changed on `master` after that commit (a stale manifest). In every case the fix is to merge/fetch and regenerate the manifest.
 
 ## Commit conventions (this repository)
 
@@ -189,7 +193,7 @@ Add <feature> to <mm>                       ← for a matrix expansion
 <Component>: <what changed>                 ← for other changes
 ```
 
-Every commit should leave the repo in a "tests pass" state — no "WIP; will fix in next commit". Practically: run `./test/lint.sh && ./test/regression.sh` before every commit.
+Every commit should leave the repo in a "tests pass" state — no "WIP; will fix in next commit". Practically: run `./test/lint.sh && ./test/regression.sh` before every commit. `./test/regression.sh` tests your working tree; to check what you actually committed, run `./test/regression.sh --committed`, which tests `HEAD` in a clean checkout and ignores uncommitted changes.
 
 ## Publishing to Docker Official Images
 
@@ -206,7 +210,7 @@ git remote add upstream https://github.com/docker-library/official-images.git
 
 ### PR title convention
 
-Before running the [Workflow](#workflow) below, decide the PR title — you'll use the same short summary in both `git commit -m "…"` and `gh pr create --title "…"`. DOI expects the form `<image>: <short summary>`, ideally under ~60 characters so titles don't truncate in the GitHub UI. Keep the summary minimal; details go in the PR body.
+Before running the [Workflow](#workflow) below, decide the PR title — you'll pass it to `gh pr create --title "…"` (the commit in the fork keeps the fixed message `Update Lightstreamer image`). DOI expects the form `<image>: <short summary>`, ideally under ~60 characters so titles don't truncate in the GitHub UI. Keep the summary minimal; details go in the PR body.
 
 | Change | Title |
 |---|---|
@@ -227,8 +231,9 @@ Rules of thumb:
 After your source-repo change is merged into `master` (via the [Branching and PR flow](#branching-and-pr-flow) at the top of this document), generate the manifest from `master` (the file is git-ignored, so any merge style works), verify locally, then open the PR against [`docker-library/official-images`](https://github.com/docker-library/official-images) from your fork:
 
 ```bash
-# In the source repo (on master, fully up to date)
+# In the source repo (on master, fully up to date: git fetch origin && git pull)
 ./generate-stackbrew-library.sh > lightstreamer
+./test/check-release.sh                           # publish-time gate: DOI can build every GitCommit
 ./test/lint.sh && ./test/regression.sh
 bashbrew --library "$(pwd)" list --build-order --uniq lightstreamer   # preview what would be built
 bashbrew --library "$(pwd)" build --pull always lightstreamer         # optional but recommended — same build DOI's CI runs
@@ -250,6 +255,7 @@ gh pr create --repo docker-library/official-images --base master \
 
 Notes on the surprising-looking commands:
 
+- **`./test/check-release.sh`** — the publish-time gate described under [Testing checklist](#publish-time-check-not-a-layer). Run it after generating the manifest and before copying it to the fork; if it fails, merge/`git fetch` and regenerate.
 - **`git reset --hard upstream/master` + `git push --force-with-lease` on the fork's `master`** — the fork's master serves purely as a launching pad for PR branches; it should always mirror upstream. `--force-with-lease` is a safer variant of `--force` that refuses to push if someone else has updated the remote in the meantime.
 - **`bashbrew --library "$(pwd)" list --build-order --uniq lightstreamer`** — prints the images the follow-up `build` will process, in dependency order. Always visible, so useful as a sanity check that the manifest parses.
 - **`bashbrew --library "$(pwd)" build --pull always lightstreamer`** — `"$(pwd)"` is the source repo. Bashbrew reads the `lightstreamer` manifest from that directory and builds every block using the exact procedure DOI's CI runs. **The command is silent when every image is already built and cached locally** — that's success, not a hang. `--pull always` forces a fresh base-image pull each run, matching CI behavior and making cached-image silence rare in practice. Green here means the DOI bot will most likely be green too. Skip for trivial changes (patch bump on already-published tags); recommended for template changes, new variants, or tag-scheme rework.
@@ -299,6 +305,7 @@ Once the refactor merges to `master`, regenerate normally: the commits are then 
 ## Prerequisites (host tooling)
 
 - **bash ≥ 4** (for associative arrays, `${arr[-1]}`)
+- **git ≥ 2.5** (`git worktree`, used by `regression.sh --committed`)
 - **jq ≥ 1.6**
 - **docker** (for `test/build-and-run.sh` only)
 - **shellcheck** (recommended)
