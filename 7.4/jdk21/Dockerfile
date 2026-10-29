@@ -6,9 +6,9 @@
 
 FROM eclipse-temurin:21-jdk
 LABEL org.opencontainers.image.authors="Lightstreamer Server Development Team <support@lightstreamer.com>"
-ENV LIGHTSTREAMER_VERSION=7.4.8
+ENV LIGHTSTREAMER_VERSION=7.4.9
 
-ARG LIGHTSTREAMER_URL_DOWNLOAD=https://lightstreamer.com/distros/ls-server/7.4.8/Lightstreamer-7.4.8.tar.gz
+ARG LIGHTSTREAMER_URL_DOWNLOAD=https://lightstreamer.com/distros/ls-server/7.4.9/Lightstreamer-7.4.9.tar.gz
 ARG FINGERPRINT=9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 
 WORKDIR /lightstreamer
@@ -26,6 +26,12 @@ RUN set -eux; \
         gpg --batch --verify Lightstreamer.tar.gz.asc Lightstreamer.tar.gz; \
 # Unpack
         tar -xf Lightstreamer.tar.gz --strip-components=1; \
+# Copy the necessary example files for the demo
+        cp -r examples/demo/conf .; \
+        cp -r examples/demo/adapters/welcome_res adapters/; \
+        cp -r examples/demo/pages/* pages/; \
+# Remove the original examples directory
+        rm -fr examples; \
 # Adjust the logging configuration in order to log only on standard output
         sed -i -e 's/<appender-ref ref="LSDailyRolling" \/>/<appender-ref ref="LSConsole" \/>/' \
                -e '/<logger name="LightstreamerLogger.init/,+2s/<appender-ref ref="LSConsole" \/>/<!-- <appender-ref ref="LSConsole" \/> -->/' \

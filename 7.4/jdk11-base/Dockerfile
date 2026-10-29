@@ -6,15 +6,15 @@
 
 # "Base" edition — same runtime as the full image, but with all content that
 # downstream images are expected to provide themselves removed: factory config
-# XMLs, welcome page, welcome-adapter resources, and PDF documentation.
+# XMLs, demo content (examples/), and PDF documentation.
 # The sed step that rewrites conf/lightstreamer_log_conf.xml is dropped too,
 # since the file it targets is stripped a moment later.
 
 FROM eclipse-temurin:11-jdk
 LABEL org.opencontainers.image.authors="Lightstreamer Server Development Team <support@lightstreamer.com>"
-ENV LIGHTSTREAMER_VERSION=7.4.8
+ENV LIGHTSTREAMER_VERSION=7.4.9
 
-ARG LIGHTSTREAMER_URL_DOWNLOAD=https://lightstreamer.com/distros/ls-server/7.4.8/Lightstreamer-7.4.8.tar.gz
+ARG LIGHTSTREAMER_URL_DOWNLOAD=https://lightstreamer.com/distros/ls-server/7.4.9/Lightstreamer-7.4.9.tar.gz
 ARG FINGERPRINT=9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
 
 WORKDIR /lightstreamer
@@ -32,7 +32,7 @@ RUN set -eux; \
 # Unpack
         tar -xf Lightstreamer.tar.gz --strip-components=1; \
 # Strip content that downstream images are expected to provide themselves.
-        rm -rf docs pages adapters/welcome_res; \
+        rm -rf docs examples; \
         rm -f conf/*.xml; \
         rm -rf bin/unix-like/install; \
         rm -rf bin/windows; \
