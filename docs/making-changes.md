@@ -9,8 +9,8 @@ This document is for anyone modifying the Lightstreamer Docker images — whethe
 ├── Dockerfile.template               ← Template for the "full" edition
 ├── Dockerfile-base.template          ← Template for the "base" edition
 ├── update.sh                         ← Regenerates the Dockerfile tree from versions.json
-├── generate-stackbrew-library.sh     ← Regenerates the `lightstreamer` manifest
-├── lightstreamer                     ← DOI manifest (generated; committed for review)
+├── generate-stackbrew-library.sh     ← Generates the `lightstreamer` manifest
+├── lightstreamer                     ← DOI manifest (generated on demand; git-ignored)
 │
 ├── <major.minor>/<runtime><java>/Dockerfile         ← generated (full edition)
 ├── <major.minor>/<runtime><java>-base/Dockerfile    ← generated (base edition)
@@ -18,6 +18,7 @@ This document is for anyone modifying the Lightstreamer Docker images — whethe
 ├── test/
 │   ├── lint.sh                       ← Layer 1: shellcheck, JSON schema, hadolint
 │   ├── regression.sh                 ← Layer 2: no unresolved placeholders, tag consistency, golden diff
+│   ├── golden-manifest.txt           ← Expected manifest without GitCommit lines (committed)
 │   └── build-and-run.sh              ← Layer 3: build every image, healthcheck the full ones
 │
 └── docs/                             ← This file lives here
@@ -39,7 +40,14 @@ flowchart LR
 
 - **`update.sh`** iterates every `(version × runtime × java × variant)` combination in `versions.json`, feeds each through the appropriate template via `envsubst`, and writes one Dockerfile per combination.
 - **`generate-stackbrew-library.sh`** walks the generated tree, looks up patch versions from `versions.json`, and emits the DOI-format `lightstreamer` file with the tag list and git commit hashes.
-- **`lightstreamer`** is committed to the repo as a golden reference — the regression test compares fresh generator output against it, so any unintentional tag change surfaces in the PR diff.
+- **`lightstreamer`** is not committed. Generate it from an up-to-date `master` when you publish to DOI, because its `GitCommit` hashes depend on history and merge style.
+- **`test/golden-manifest.txt`** is the committed reference: the same manifest minus the `GitCommit` lines. The regression test compares fresh generator output (also minus `GitCommit`) against it, so any unintentional tag change surfaces in the PR diff.
+
+To update the golden after an intentional tag change:
+
+```bash
+./generate-stackbrew-library.sh | grep -v '^GitCommit:' > test/golden-manifest.txt
+```
 
 ## Branching and PR flow
 
@@ -82,9 +90,9 @@ Then regenerate and commit:
 
 ```bash
 ./update.sh
-./generate-stackbrew-library.sh > lightstreamer
+./generate-stackbrew-library.sh | grep -v '^GitCommit:' > test/golden-manifest.txt
 ./test/lint.sh && ./test/regression.sh
-git add versions.json 7.4/ lightstreamer
+git add versions.json 7.4/ test/golden-manifest.txt
 git commit -m "Release 7.4.9"
 git push
 ```
@@ -104,9 +112,9 @@ Then:
 
 ```bash
 ./update.sh                            # creates new 7.4/jdk26[-base]/ dirs
-./generate-stackbrew-library.sh > lightstreamer
+./generate-stackbrew-library.sh | grep -v '^GitCommit:' > test/golden-manifest.txt
 ./test/lint.sh && ./test/regression.sh
-git add versions.json 7.4/jdk26 7.4/jdk26-base lightstreamer
+git add versions.json 7.4/jdk26 7.4/jdk26-base test/golden-manifest.txt
 git commit -m "Add Java 26 support to 7.4"
 git push
 ```
@@ -135,8 +143,6 @@ Edit `Dockerfile.template` (full edition) or `Dockerfile-base.template` (base ed
 
 ```bash
 ./update.sh                            # regenerates every Dockerfile
-./generate-stackbrew-library.sh > lightstreamer   # only needed if template
-                                                   # changes affect git-commit reachability
 ./test/lint.sh && ./test/regression.sh
 ./test/build-and-run.sh                # RECOMMENDED for template changes
 ```
@@ -150,11 +156,14 @@ Tag rules live inside the main loop of [`generate-stackbrew-library.sh`](../gene
 After the change:
 
 ```bash
-./generate-stackbrew-library.sh > lightstreamer
 ./test/regression.sh                   # will FAIL on golden diff if tags changed
 ```
 
-If the change is intentional, the golden diff failure IS the sanity check — review the diff carefully, then commit the new `lightstreamer` file.
+If the change is intentional, the golden diff failure IS the sanity check — review the diff carefully, then regenerate the golden and commit it:
+
+```bash
+./generate-stackbrew-library.sh | grep -v '^GitCommit:' > test/golden-manifest.txt
+```
 
 ## Testing checklist
 
@@ -215,7 +224,7 @@ Rules of thumb:
 
 ### Workflow
 
-After your source-repo change is merged into `master` (via the [Branching and PR flow](#branching-and-pr-flow) at the top of this document), regenerate the manifest, verify locally, then open the PR against [`docker-library/official-images`](https://github.com/docker-library/official-images) from your fork:
+After your source-repo change is merged into `master` (via the [Branching and PR flow](#branching-and-pr-flow) at the top of this document), generate the manifest from `master` (the file is git-ignored, so any merge style works), verify locally, then open the PR against [`docker-library/official-images`](https://github.com/docker-library/official-images) from your fork:
 
 ```bash
 # In the source repo (on master, fully up to date)
@@ -232,7 +241,7 @@ git switch -c lightstreamer-<short-desc>          # e.g. lightstreamer-7.4.10
 cp <path-to-source-repo>/lightstreamer library/lightstreamer
 git add library/lightstreamer
 git diff --staged                                 # sanity: only expected lines changed
-git commit -m "lightstreamer: <short-summary>"
+git commit -m "Update Lightstreamer image"
 git push origin lightstreamer-<short-desc>
 
 gh pr create --repo docker-library/official-images --base master \
@@ -283,9 +292,9 @@ The standard flow requires merging to `master` before submitting to DOI, because
    GitFetch: refs/heads/<topic-branch>
    ```
 
-3. **Do not commit this dry-run manifest.** `generate-stackbrew-library.sh` never emits `GitFetch`, so a committed manifest carrying that line would fail the golden-diff check in `./test/regression.sh` — and would be wrong anyway once the branch merges. Keep the edited manifest local (or strip the line before committing).
+3. **Never submit this dry-run manifest as the final one.** `generate-stackbrew-library.sh` never emits `GitFetch`, and the line is wrong once the branch merges.
 
-Once the refactor merges to `master`, regenerate normally: the commits are then reachable on the default branch, no `GitFetch` is needed, and the manifest matches the committed golden again.
+Once the refactor merges to `master`, regenerate normally: the commits are then reachable on the default branch and no `GitFetch` is needed.
 
 ## Prerequisites (host tooling)
 

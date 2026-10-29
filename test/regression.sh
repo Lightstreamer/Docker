@@ -10,8 +10,8 @@
 #   - generate-stackbrew-library.sh runs cleanly.
 #   - No duplicate tags across the whole manifest.
 #   - The tag `latest` appears exactly once.
-#   - The generated stackbrew manifest matches the committed golden file
-#     (./lightstreamer), if one exists.
+#   - The generated stackbrew manifest, minus its GitCommit lines, matches the
+#     committed golden file (test/golden-manifest.txt), if one exists.
 #
 # On any failure prints a diagnostic and exits non-zero.
 
@@ -70,12 +70,14 @@ fi
 echo "OK"
 
 # --- Golden-file diff ---------------------------------------------------------
-step "matches committed 'lightstreamer' manifest"
-if [[ ! -f lightstreamer ]]; then
-    echo "SKIP: no committed 'lightstreamer' golden file"
+step "matches golden manifest (test/golden-manifest.txt)"
+golden=test/golden-manifest.txt
+if [[ ! -f "$golden" ]]; then
+    echo "SKIP: no golden file"
 else
-    if ! diff -u lightstreamer /tmp/stackbrew.new > /tmp/stackbrew.diff; then
-        echo "FAIL: stackbrew manifest differs from committed 'lightstreamer'."
+    # GitCommit hashes depend on history and merge style, so they are not compared.
+    if ! grep -v '^GitCommit:' /tmp/stackbrew.new | diff -u "$golden" - > /tmp/stackbrew.diff; then
+        echo "FAIL: stackbrew manifest differs from $golden."
         echo
         head -60 /tmp/stackbrew.diff
         cat >&2 <<-EOM
@@ -83,7 +85,7 @@ else
 If the change is intentional, regenerate the golden and commit it alongside
 your other changes:
 
-    ./generate-stackbrew-library.sh > lightstreamer
+    ./generate-stackbrew-library.sh | grep -v '^GitCommit:' > $golden
 
 EOM
         exit 1
