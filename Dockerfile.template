@@ -7,7 +7,6 @@
 FROM eclipse-temurin:${JAVA_VERSION}-${FLAVOR}
 LABEL org.opencontainers.image.authors="Lightstreamer Server Development Team <support@lightstreamer.com>"
 ENV LIGHTSTREAMER_VERSION=${LIGHTSTREAMER_VERSION}
-ENV LS_CONFIG=/lightstreamer/examples/demo/conf/lightstreamer_conf.xml
 
 ARG LIGHTSTREAMER_URL_DOWNLOAD=https://lightstreamer.com/distros/ls-server/${LIGHTSTREAMER_VERSION}/Lightstreamer-${LIGHTSTREAMER_VERSION}.tar.gz
 ARG FINGERPRINT=9B90BFD14309C7DA5EF58D7D4A8C08966F29B4D2
