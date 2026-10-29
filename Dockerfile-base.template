@@ -6,7 +6,7 @@
 
 # "Base" edition — same runtime as the full image, but with all content that
 # downstream images are expected to provide themselves removed: factory config
-# XMLs, welcome page, welcome-adapter resources, and PDF documentation.
+# XMLs, demo content (examples/), and PDF documentation.
 # The sed step that rewrites conf/lightstreamer_log_conf.xml is dropped too,
 # since the file it targets is stripped a moment later.
 
@@ -32,7 +32,7 @@ RUN set -eux; \
 # Unpack
         tar -xf Lightstreamer.tar.gz --strip-components=1; \
 ${LEGACY_PATCH}# Strip content that downstream images are expected to provide themselves.
-        rm -rf ${DOCS_DIR} examples;\
+        rm -rf ${DOCS_DIR} examples; \
         rm -f conf/*.xml; \
         rm -rf bin/unix-like/install; \
         rm -rf bin/windows; \
